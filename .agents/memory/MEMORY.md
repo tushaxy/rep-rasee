@@ -1,0 +1,2 @@
+- [BizInvoice stack](bizinvoice-stack.md) — full-stack Expo + Express + Drizzle ORM; API-first with Orval codegen; no Supabase
+- [Invoice data integrity](invoice-integrity.md) — invoices wrap create/delete in db.transaction(); totals always recomputed when discount/shipping change
