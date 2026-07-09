@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,17 +9,30 @@ import { ThemedInput } from '@/components/ui/ThemedInput';
 import { PremiumButton } from '@/components/ui/PremiumButton';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useColorScheme } from 'react-native';
+import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
+
+const THEME_OPTIONS: { label: string; value: ThemeMode; icon: string }[] = [
+  { label: 'Light', value: 'light', icon: 'sun' },
+  { label: 'Dark',  value: 'dark',  icon: 'moon' },
+  { label: 'System', value: 'system', icon: 'smartphone' },
+];
 
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const scheme = useColorScheme();
   const qc = useQueryClient();
-  const { data: profile, isLoading } = useGetBusinessProfile();
+  const { data: profile } = useGetBusinessProfile();
   const updateProfile = useUpdateBusinessProfile();
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
-  const [form, setForm] = useState({ shopName: '', ownerName: '', phone: '', email: '', gstNumber: '', panNumber: '', address: '', state: '', city: '', pincode: '', bankName: '', accountNumber: '', ifscCode: '', upiId: '', defaultTaxPercent: '18', currency: 'INR', termsAndConditions: '', invoiceNotes: '' });
+  const [form, setForm] = useState({
+    shopName: '', ownerName: '', phone: '', email: '',
+    gstNumber: '', panNumber: '',
+    address: '', state: '', city: '', pincode: '',
+    bankName: '', accountNumber: '', ifscCode: '', upiId: '',
+    defaultTaxPercent: '18', currency: 'INR',
+    termsAndConditions: '', invoiceNotes: '',
+  });
 
   useEffect(() => {
     if (profile) {
@@ -97,6 +110,35 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+        {/* ── Appearance ── */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Appearance</Text>
+          <Text style={[styles.sectionSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>Choose your preferred colour mode</Text>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map(opt => {
+              const active = themeMode === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.themeBtn,
+                    { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.overlay : colors.muted },
+                  ]}
+                  onPress={() => { setThemeMode(opt.value); Haptics.selectionAsync(); }}
+                  activeOpacity={0.7}
+                >
+                  <Feather name={opt.icon as any} size={18} color={active ? colors.primary : colors.mutedForeground} />
+                  <Text style={[styles.themeBtnLabel, { color: active ? colors.primary : colors.mutedForeground, fontFamily: active ? 'Inter_700Bold' : 'Inter_400Regular' }]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* ── Business Profile ── */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Business Profile</Text>
           <ThemedInput label="Shop Name *" value={form.shopName} onChangeText={set('shopName')} placeholder="Your Business Name" autoCapitalize="words" />
@@ -105,6 +147,7 @@ export default function SettingsScreen() {
           <ThemedInput label="Email" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" />
         </View>
 
+        {/* ── Tax & Compliance ── */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Tax & Compliance</Text>
           <ThemedInput label="GST Number" value={form.gstNumber} onChangeText={set('gstNumber')} autoCapitalize="characters" placeholder="29AAAPZ4567R1Z8" />
@@ -115,6 +158,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* ── Address ── */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Address</Text>
           <ThemedInput label="Address" value={form.address} onChangeText={set('address')} multiline numberOfLines={2} style={{ height: 70, textAlignVertical: 'top' }} />
@@ -125,6 +169,7 @@ export default function SettingsScreen() {
           <ThemedInput label="Pincode" value={form.pincode} onChangeText={set('pincode')} keyboardType="numeric" />
         </View>
 
+        {/* ── Bank Details ── */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Bank Details</Text>
           <ThemedInput label="Bank Name" value={form.bankName} onChangeText={set('bankName')} autoCapitalize="words" />
@@ -133,6 +178,7 @@ export default function SettingsScreen() {
           <ThemedInput label="UPI ID" value={form.upiId} onChangeText={set('upiId')} autoCapitalize="none" />
         </View>
 
+        {/* ── Invoice Settings ── */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Invoice Settings</Text>
           <ThemedInput label="Terms & Conditions" value={form.termsAndConditions} onChangeText={set('termsAndConditions')} multiline numberOfLines={4} style={{ height: 100, textAlignVertical: 'top' }} placeholder="e.g. Payment due within 30 days..." />
@@ -153,7 +199,11 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
   section: { borderRadius: 20, padding: 20 },
-  sectionTitle: { fontSize: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 16, marginBottom: 4 },
+  sectionSub: { fontSize: 12, marginBottom: 14 },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
+  themeRow: { flexDirection: 'row', gap: 10 },
+  themeBtn: { flex: 1, flexDirection: 'column', alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, gap: 6 },
+  themeBtnLabel: { fontSize: 12 },
 });

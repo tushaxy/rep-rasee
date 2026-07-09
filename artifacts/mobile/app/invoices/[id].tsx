@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,8 @@ import { CardSkeleton } from '@/components/ui/SkeletonLoader';
 import { ThemedInput } from '@/components/ui/ThemedInput';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
+import { generateInvoicePdf } from '@/utils/generateInvoicePdf';
 
 const STATUS_OPTIONS = ['draft', 'sent', 'paid', 'partial', 'cancelled'];
 
@@ -27,6 +29,7 @@ export default function InvoiceDetailScreen() {
   const deleteInvoice = useDeleteInvoice();
   const [paidAmount, setPaidAmount] = useState('');
   const [showPayment, setShowPayment] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const handleStatusChange = (status: string) => {
     updateInvoice.mutate({ id: invoiceId, data: { status } }, {
@@ -74,6 +77,29 @@ export default function InvoiceDetailScreen() {
     Share.share({ message: text, title: invoice.invoiceNumber });
   };
 
+  const handleDownloadPdf = async () => {
+    if (!invoice || !business) return;
+    setPdfLoading(true);
+    try {
+      const uri = await generateInvoicePdf(invoice, business);
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Share ${invoice.invoiceNumber}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('PDF saved', uri);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      Alert.alert('Error', 'Could not generate PDF. Please try again.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   const topPaddingWeb = Platform.OS === 'web' ? 67 : 0;
   const due = (invoice?.grandTotal ?? 0) - (invoice?.paidAmount ?? 0);
 
@@ -85,8 +111,12 @@ export default function InvoiceDetailScreen() {
         </TouchableOpacity>
         <Text style={[styles.navTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Invoice</Text>
         <View style={styles.navRight}>
-          <TouchableOpacity style={styles.navBtn} onPress={handleShare}><Feather name="share-2" size={18} color={colors.primary} /></TouchableOpacity>
-          <TouchableOpacity style={styles.navBtn} onPress={handleDelete}><Feather name="trash-2" size={18} color={colors.destructive} /></TouchableOpacity>
+          <TouchableOpacity style={styles.navBtn} onPress={handleShare}>
+            <Feather name="share-2" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navBtn} onPress={handleDelete}>
+            <Feather name="trash-2" size={18} color={colors.destructive} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -94,6 +124,7 @@ export default function InvoiceDetailScreen() {
         <View style={{ padding: 16 }}><CardSkeleton /><CardSkeleton /><CardSkeleton /></View>
       ) : invoice ? (
         <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
+
           {/* Invoice header */}
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <View style={styles.invHeader}>
@@ -111,6 +142,23 @@ export default function InvoiceDetailScreen() {
               </View>
             )}
           </View>
+
+          {/* ── PDF Download button ── */}
+          <TouchableOpacity
+            style={[styles.pdfBtn, { backgroundColor: colors.card, borderColor: colors.primary }]}
+            onPress={handleDownloadPdf}
+            disabled={pdfLoading}
+            activeOpacity={0.75}
+          >
+            {pdfLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Feather name="download" size={18} color={colors.primary} />
+            )}
+            <Text style={[styles.pdfBtnText, { color: colors.primary, fontFamily: 'Inter_700Bold' }]}>
+              {pdfLoading ? 'Generating PDF…' : 'Download GST Invoice PDF'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Customer */}
           <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -210,6 +258,8 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
   card: { borderRadius: 20, padding: 18 },
+  pdfBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderRadius: 16, borderWidth: 1.5, marginBottom: 0 },
+  pdfBtnText: { fontSize: 15 },
   invHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   invNumber: { fontSize: 20, marginBottom: 2 },
   invDate: { fontSize: 13 },

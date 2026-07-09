@@ -16,6 +16,8 @@ router.get("/business-profile", async (req, res): Promise<void> => {
   res.json(GetBusinessProfileResponse.parse({
     ...p,
     defaultTaxPercent: Number(p.defaultTaxPercent),
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
   }));
 });
 
@@ -74,6 +76,8 @@ router.put("/business-profile", async (req, res): Promise<void> => {
   res.json(GetBusinessProfileResponse.parse({
     ...result,
     defaultTaxPercent: Number(result.defaultTaxPercent),
+    createdAt: result.createdAt.toISOString(),
+    updatedAt: result.updatedAt.toISOString(),
   }));
 });
 
