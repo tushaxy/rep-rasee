@@ -350,7 +350,7 @@ export async function generateInvoicePdf(inv: InvoiceForPdf, biz: BusinessForPdf
   <!-- ── Bottom strip ── -->
   <div class="strip">
     <span class="strip-text">This is a computer-generated invoice. No physical signature required.</span>
-    <span class="strip-brand">BizInvoice</span>
+    <span class="strip-brand">RASEED · रसीद</span>
   </div>
 
 </div>

@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, sql, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { productsTable, categoriesTable } from "@workspace/db";
+import { getProfileId } from "../lib/routeHelpers";
 import {
   CreateProductBody,
   GetProductParams,
@@ -28,6 +29,7 @@ router.get("/products", async (req, res): Promise<void> => {
   const search = typeof req.query.search === "string" ? req.query.search : undefined;
   const categoryIdRaw = typeof req.query.categoryId === "string" ? parseInt(req.query.categoryId, 10) : undefined;
   const lowStock = req.query.lowStock === "true";
+  const profileId = getProfileId(req);
 
   const rows = await db
     .select({
@@ -64,7 +66,8 @@ router.get("/products", async (req, res): Promise<void> => {
           : undefined,
         search
           ? sql`(${productsTable.name} ILIKE ${`%${search}%`} OR ${productsTable.sku} ILIKE ${`%${search}%`} OR ${productsTable.barcode} ILIKE ${`%${search}%`})`
-          : undefined
+          : undefined,
+        profileId ? eq(productsTable.businessProfileId, profileId) : undefined,
       )
     )
     .orderBy(productsTable.name);
@@ -78,6 +81,7 @@ router.post("/products", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const profileId = getProfileId(req);
   const [product] = await db
     .insert(productsTable)
     .values({
@@ -89,6 +93,7 @@ router.post("/products", async (req, res): Promise<void> => {
       stockQuantity: parsed.data.stockQuantity ?? 0,
       minimumStock: parsed.data.minimumStock ?? 5,
       isArchived: parsed.data.isArchived ?? false,
+      ...(profileId ? { businessProfileId: profileId } : {}),
     })
     .returning();
 

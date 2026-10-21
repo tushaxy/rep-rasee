@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { categoriesTable } from "@workspace/db";
+import { getProfileId } from "../lib/routeHelpers";
 import {
   GetCategoriesResponse,
   CreateCategoryBody,
@@ -10,10 +11,12 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/categories", async (_req, res): Promise<void> => {
+router.get("/categories", async (req, res): Promise<void> => {
+  const profileId = getProfileId(req);
   const categories = await db
     .select()
     .from(categoriesTable)
+    .where(profileId ? eq(categoriesTable.businessProfileId, profileId) : undefined)
     .orderBy(categoriesTable.name);
   res.json(GetCategoriesResponse.parse(categories));
 });
@@ -24,9 +27,10 @@ router.post("/categories", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const profileId = getProfileId(req);
   const [category] = await db
     .insert(categoriesTable)
-    .values(parsed.data)
+    .values({ ...parsed.data, ...(profileId ? { businessProfileId: profileId } : {}) })
     .returning();
   res.status(201).json(category);
 });

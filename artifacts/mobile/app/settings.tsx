@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetBusinessProfile, useUpdateBusinessProfile, getGetBusinessProfileQueryKey } from '@workspace/api-client-react';
+import { useAuth } from '@clerk/expo';
+import { useProfile } from '@/contexts/ProfileContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { ThemedInput } from '@/components/ui/ThemedInput';
 import { PremiumButton } from '@/components/ui/PremiumButton';
@@ -24,6 +26,8 @@ export default function SettingsScreen() {
   const { data: profile } = useGetBusinessProfile();
   const updateProfile = useUpdateBusinessProfile();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
+  const { signOut } = useAuth();
+  const { setSelectedProfileId } = useProfile();
 
   const [form, setForm] = useState({
     shopName: '', ownerName: '', phone: '', email: '',
@@ -186,6 +190,36 @@ export default function SettingsScreen() {
         </View>
 
         <PremiumButton label={updateProfile.isPending ? 'Saving...' : 'Save Settings'} onPress={handleSave} loading={updateProfile.isPending} size="lg" />
+
+        {/* ── Business accounts ── */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>Business Account</Text>
+          <TouchableOpacity
+            style={[styles.accountBtn, { borderColor: colors.primary, backgroundColor: colors.overlay }]}
+            onPress={() => router.push('/profile-select')}
+            activeOpacity={0.8}
+          >
+            <Feather name="briefcase" size={18} color={colors.primary} />
+            <Text style={[styles.accountBtnText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>Switch Business Profile</Text>
+            <Feather name="chevron-right" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.accountBtn, styles.signOutBtn, { borderColor: colors.destructive }]}
+            onPress={() =>
+              Alert.alert('Sign out?', 'You will need to sign back in.', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign out', style: 'destructive', onPress: async () => {
+                  setSelectedProfileId(null);
+                  await signOut();
+                }},
+              ])
+            }
+            activeOpacity={0.8}
+          >
+            <Feather name="log-out" size={18} color={colors.destructive} />
+            <Text style={[styles.accountBtnText, { color: colors.destructive, fontFamily: 'Inter_600SemiBold' }]}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -206,4 +240,7 @@ const styles = StyleSheet.create({
   themeRow: { flexDirection: 'row', gap: 10 },
   themeBtn: { flex: 1, flexDirection: 'column', alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, gap: 6 },
   themeBtnLabel: { fontSize: 12 },
+  accountBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 10 },
+  signOutBtn: { marginTop: 8 },
+  accountBtnText: { flex: 1, fontSize: 14 },
 });

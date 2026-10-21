@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUpdateBusinessProfile, getGetBusinessProfileQueryKey } from '@workspace/api-client-react';
+import { useProfile } from '@/contexts/ProfileContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { ThemedInput } from '@/components/ui/ThemedInput';
 import { PremiumButton } from '@/components/ui/PremiumButton';
@@ -15,6 +16,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const updateProfile = useUpdateBusinessProfile();
+  const { setSelectedProfileId } = useProfile();
 
   const [form, setForm] = useState({ shopName: '', ownerName: '', phone: '', email: '', gstNumber: '', address: '', state: '', city: '', pincode: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,7 +50,8 @@ export default function OnboardingScreen() {
         currency: 'INR',
       },
     }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
+        if (data?.id) setSelectedProfileId(data.id);
         qc.invalidateQueries({ queryKey: getGetBusinessProfileQueryKey() });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace('/(tabs)');
@@ -68,7 +71,7 @@ export default function OnboardingScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <Text style={[styles.welcomeTitle, { fontFamily: 'Inter_700Bold' }]}>Welcome to</Text>
-        <Text style={[styles.appName, { fontFamily: 'Inter_700Bold' }]}>BizInvoice</Text>
+        <Text style={[styles.appName, { fontFamily: 'Inter_700Bold' }]}>RASEED</Text>
         <Text style={[styles.welcomeSub, { fontFamily: 'Inter_400Regular' }]}>
           Set up your business profile to get started
         </Text>

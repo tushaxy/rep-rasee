@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, sql, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { customersTable } from "@workspace/db";
+import { getProfileId } from "../lib/routeHelpers";
 import {
   CreateCustomerBody,
   GetCustomerParams,
@@ -20,8 +21,10 @@ router.get("/customers", async (req, res): Promise<void> => {
   const search = typeof req.query.search === "string" ? req.query.search : undefined;
   const favorites = req.query.favorites === "true";
 
+  const profileId = getProfileId(req);
   const conditions = [];
   if (favorites) conditions.push(eq(customersTable.isFavorite, true));
+  if (profileId) conditions.push(eq(customersTable.businessProfileId, profileId));
   if (search) {
     conditions.push(
       sql`(${customersTable.name} ILIKE ${`%${search}%`} OR ${customersTable.phone} ILIKE ${`%${search}%`} OR ${customersTable.email} ILIKE ${`%${search}%`})`
@@ -43,12 +46,14 @@ router.post("/customers", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const profileId = getProfileId(req);
   const [customer] = await db
     .insert(customersTable)
     .values({
       ...parsed.data,
       outstandingBalance: parsed.data.outstandingBalance?.toString() ?? "0",
       isFavorite: parsed.data.isFavorite ?? false,
+      ...(profileId ? { businessProfileId: profileId } : {}),
     })
     .returning();
   res.status(201).json(formatCustomer(customer));

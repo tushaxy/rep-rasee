@@ -17,6 +17,11 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _profileIdGetter: (() => string | null | undefined) | null = null;
+
+export function setProfileIdGetter(getter: (() => string | null | undefined) | null): void {
+  _profileIdGetter = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -355,6 +360,14 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Attach the active business profile ID header when a getter is configured.
+  if (_profileIdGetter && !headers.has("x-profile-id")) {
+    const profileId = _profileIdGetter();
+    if (profileId) {
+      headers.set("x-profile-id", profileId);
     }
   }
 

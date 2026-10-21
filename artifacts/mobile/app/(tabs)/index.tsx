@@ -18,7 +18,8 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (noProfile) {
-      router.replace('/onboarding');
+      // No profile for this user → go to profile selector
+      router.replace('/profile-select');
     }
   }, [noProfile]);
 
@@ -44,120 +45,132 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={[styles.greeting, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}
+            Welcome back 👋
           </Text>
           <Text style={[styles.shopName, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-            {business?.shopName ?? 'My Business'}
+            {business?.shopName ?? 'RASEED'}
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.settingsBtn, { backgroundColor: colors.card }]}
+          style={[styles.settingsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => router.push('/settings')}
         >
           <Feather name="settings" size={20} color={colors.foreground} />
         </TouchableOpacity>
       </View>
 
-      {/* Quick actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={[styles.quickAction, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/invoices/new')}
-        >
-          <Feather name="file-plus" size={18} color="#FFF" />
-          <Text style={[styles.quickActionLabel, { fontFamily: 'Inter_600SemiBold', color: '#FFF' }]}>New Invoice</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.quickAction, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/customers/new')}
-        >
-          <Feather name="user-plus" size={18} color={colors.primary} />
-          <Text style={[styles.quickActionLabel, { fontFamily: 'Inter_600SemiBold', color: colors.primary }]}>Add Customer</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.quickAction, { backgroundColor: colors.card }]}
-          onPress={() => router.push('/inventory/new')}
-        >
-          <Feather name="plus-square" size={18} color={colors.primary} />
-          <Text style={[styles.quickActionLabel, { fontFamily: 'Inter_600SemiBold', color: colors.primary }]}>Add Product</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats grid */}
+      {/* Today stats banner */}
       {isLoading ? (
-        <>
-          <CardSkeleton />
-          <CardSkeleton />
-        </>
+        <CardSkeleton style={{ height: 100, marginBottom: 16 }} />
       ) : (
-        <>
-          <View style={styles.statsRow}>
+        <LinearGradient
+          colors={['#4F46E5', '#7C3AED']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.todayBanner}
+        >
+          <View>
+            <Text style={styles.bannerLabel}>Today's Sales</Text>
+            <Text style={styles.bannerValue}>{formatCurrency(stats?.todaySales ?? 0)}</Text>
+          </View>
+          <View style={styles.bannerDivider} />
+          <View>
+            <Text style={styles.bannerLabel}>Orders</Text>
+            <Text style={styles.bannerValue}>{stats?.todayOrders ?? 0}</Text>
+          </View>
+        </LinearGradient>
+      )}
+
+      {/* Stat cards */}
+      <View style={styles.statsGrid}>
+        {isLoading ? (
+          <>
+            <CardSkeleton style={{ flex: 1, height: 90 }} />
+            <CardSkeleton style={{ flex: 1, height: 90 }} />
+          </>
+        ) : (
+          <>
             <StatCard
-              label="Today's Sales"
-              value={formatCurrency(stats?.todaySales ?? 0)}
-              icon="trending-up"
-              accent="primary"
-              subtitle={`${stats?.todayOrders ?? 0} orders`}
-            />
-            <StatCard
-              label="Pending"
+              label="Pending Payments"
               value={formatCurrency(stats?.pendingPayments ?? 0)}
               icon="clock"
-              accent="warning"
+              color="#F59E0B"
+              colors={colors}
             />
-          </View>
-          <View style={styles.statsRow}>
             <StatCard
               label="Inventory Value"
               value={formatCurrency(stats?.inventoryValue ?? 0)}
-              icon="archive"
-              accent="info"
+              icon="package"
+              color="#10B981"
+              colors={colors}
+            />
+          </>
+        )}
+      </View>
+
+      <View style={styles.statsGrid}>
+        {isLoading ? (
+          <>
+            <CardSkeleton style={{ flex: 1, height: 90 }} />
+            <CardSkeleton style={{ flex: 1, height: 90 }} />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Low Stock Items"
+              value={String(stats?.lowStockCount ?? 0)}
+              icon="alert-circle"
+              color="#EF4444"
+              colors={colors}
             />
             <StatCard
-              label="Customers"
+              label="Total Customers"
               value={String(stats?.totalCustomers ?? 0)}
               icon="users"
-              accent="accent"
+              color="#6366F1"
+              colors={colors}
             />
-          </View>
-          {(stats?.lowStockCount ?? 0) > 0 && (
-            <TouchableOpacity onPress={() => router.push('/inventory')} activeOpacity={0.9}>
-              <LinearGradient
-                colors={['#FEF3C7', '#FDE68A']}
-                style={styles.alertBanner}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Feather name="alert-circle" size={18} color="#92400E" />
-                <Text style={[styles.alertText, { fontFamily: 'Inter_500Medium', color: '#92400E' }]}>
-                  {stats?.lowStockCount} item{stats?.lowStockCount !== 1 ? 's' : ''} running low on stock
-                </Text>
-                <Feather name="chevron-right" size={16} color="#92400E" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </View>
 
       {/* Revenue chart */}
-      <View style={[styles.chartCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+      <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.chartTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-          Revenue Trend
+          Revenue (Last 6 Months)
         </Text>
-        <Text style={[styles.chartSubtitle, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-          Last 6 months
-        </Text>
-        {stats?.monthlyRevenue && stats.monthlyRevenue.length > 0 ? (
-          <View style={styles.chartWrap}>
-            <BarChart data={stats.monthlyRevenue} height={160} />
-          </View>
+        {isLoading ? (
+          <CardSkeleton style={{ height: 140 }} />
         ) : (
-          <View style={styles.chartEmpty}>
-            <Text style={[styles.chartEmptyText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-              No revenue data yet
-            </Text>
-          </View>
+          <BarChart data={stats?.monthlyRevenue ?? []} colors={colors} />
         )}
+      </View>
+
+      {/* Quick actions */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
+        Quick Actions
+      </Text>
+      <View style={styles.quickActions}>
+        {[
+          { label: 'New Invoice', icon: 'file-plus', route: '/invoices/new', color: '#4F46E5' },
+          { label: 'Add Product', icon: 'plus-square', route: '/inventory/new', color: '#10B981' },
+          { label: 'Add Customer', icon: 'user-plus', route: '/customers/new', color: '#F59E0B' },
+          { label: 'Reports', icon: 'bar-chart-2', route: '/(tabs)/reports', color: '#EF4444' },
+        ].map(action => (
+          <TouchableOpacity
+            key={action.label}
+            style={[styles.quickBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push(action.route as any)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickBtnIcon, { backgroundColor: action.color + '22' }]}>
+              <Feather name={action.icon as any} size={20} color={action.color} />
+            </View>
+            <Text style={[styles.quickBtnLabel, { color: colors.foreground, fontFamily: 'Inter_500Medium' }]}>
+              {action.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </ScrollView>
   );
@@ -165,65 +178,21 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingHorizontal: 16 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
+  content: { paddingHorizontal: 16, gap: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   greeting: { fontSize: 13, marginBottom: 2 },
-  shopName: { fontSize: 24 },
-  settingsBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-  },
-  quickAction: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 16,
-    gap: 6,
-    ...Platform.select({
-      ios: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
-      android: { elevation: 2 },
-      web: { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
-    }),
-  },
-  quickActionLabel: { fontSize: 11, textAlign: 'center' },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  alertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-  },
-  alertText: { flex: 1, fontSize: 13 },
-  chartCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 4,
-    ...Platform.select({
-      ios: { shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-      android: { elevation: 3 },
-      web: { boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
-    }),
-  },
-  chartTitle: { fontSize: 17, marginBottom: 4 },
-  chartSubtitle: { fontSize: 12, marginBottom: 16 },
-  chartWrap: { alignItems: 'center' },
-  chartEmpty: { height: 120, alignItems: 'center', justifyContent: 'center' },
-  chartEmptyText: { fontSize: 14 },
+  shopName: { fontSize: 22 },
+  settingsBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  todayBanner: { borderRadius: 20, padding: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  bannerLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'Inter_400Regular', marginBottom: 4 },
+  bannerValue: { fontSize: 28, fontWeight: '800', color: '#fff', fontFamily: 'Inter_700Bold' },
+  bannerDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)' },
+  statsGrid: { flexDirection: 'row', gap: 12 },
+  chartCard: { borderRadius: 20, padding: 20, borderWidth: 1 },
+  chartTitle: { fontSize: 16, marginBottom: 12 },
+  sectionTitle: { fontSize: 17, marginTop: 4 },
+  quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  quickBtn: { width: '47%', padding: 16, borderRadius: 18, alignItems: 'center', gap: 10, borderWidth: 1 },
+  quickBtnIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  quickBtnLabel: { fontSize: 13, textAlign: 'center' },
 });

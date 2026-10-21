@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, sql, and, desc } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { invoicesTable, invoiceItemsTable, productsTable } from "@workspace/db";
+import { getProfileId } from "../lib/routeHelpers";
 import {
   CreateInvoiceBody,
   GetInvoiceParams,
@@ -81,8 +82,10 @@ router.get("/invoices", async (req, res): Promise<void> => {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
   const customerIdRaw = typeof req.query.customerId === "string" ? parseInt(req.query.customerId, 10) : undefined;
 
+  const profileId = getProfileId(req);
   const conditions = [];
   if (status) conditions.push(eq(invoicesTable.status, status));
+  if (profileId) conditions.push(eq(invoicesTable.businessProfileId, profileId));
   if (customerIdRaw != null && !isNaN(customerIdRaw)) conditions.push(eq(invoicesTable.customerId, customerIdRaw));
   if (search) {
     conditions.push(
@@ -130,6 +133,7 @@ router.post("/invoices", async (req, res): Promise<void> => {
   );
 
   // Wrap everything in a transaction for atomic invoice + stock update
+  const profileId = getProfileId(req);
   const { invoice, insertedItems } = await db.transaction(async (tx) => {
     const [invoice] = await tx
       .insert(invoicesTable)
@@ -150,6 +154,7 @@ router.post("/invoices", async (req, res): Promise<void> => {
         paidAmount: (parsed.data.paidAmount ?? 0).toString(),
         paymentMode: parsed.data.paymentMode ?? null,
         notes: parsed.data.notes ?? null,
+        ...(profileId ? { businessProfileId: profileId } : {}),
       })
       .returning();
 
